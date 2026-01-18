@@ -1,0 +1,217 @@
+================================================================================
+                    CORPORATE SECTOR DATABASE INFORMATION
+================================================================================
+Database: PostgreSQL
+Database Name: skill_intelligence
+Location: /opt/homebrew/var/postgresql@14/
+Connection: postgresql://localhost:5432/skill_intelligence
+
+================================================================================
+                           TOTAL TABLES: 8
+================================================================================
+
+--------------------------------------------------------------------------------
+TABLE 1: users
+--------------------------------------------------------------------------------
+Columns:
+  - id           : String (UUID, Primary Key)
+  - email        : String (Unique)
+  - password     : String (Bcrypt hashed)
+  - name         : String
+  - dob          : DateTime (Optional)
+  - role         : Enum (APPLICANT, HIRER)
+  - sector       : Enum (HEALTHCARE, AGRICULTURE, URBAN, GENERAL, CORPORATE)
+  - createdAt    : DateTime
+  - updatedAt    : DateTime
+
+Relations:
+  - notifications      -> Notification[]
+  - applicantProfile   -> ApplicantProfile?
+  - hirerJobs          -> CorporateJob[]
+
+--------------------------------------------------------------------------------
+TABLE 2: applicant_profiles
+--------------------------------------------------------------------------------
+Columns:
+  - id           : String (UUID, Primary Key)
+  - userId       : String (Unique, Foreign Key -> users.id)
+  - linkedInUrl  : String (Optional)
+  - courseraUrl  : String (Optional)
+  - bio          : String (Optional)
+  - createdAt    : DateTime
+  - updatedAt    : DateTime
+
+Relations:
+  - user          -> User
+  - resume        -> Resume?
+  - certificates  -> Certificate[]
+  - derivedSkills -> DerivedSkill[]
+  - githubRepos   -> GitHubRepo[]
+
+--------------------------------------------------------------------------------
+TABLE 3: resumes
+--------------------------------------------------------------------------------
+Columns:
+  - id           : String (UUID, Primary Key)
+  - applicantId  : String (Unique, Foreign Key -> applicant_profiles.id)
+  - filename     : String
+  - filepath     : String
+  - uploadedAt   : DateTime
+
+Relations:
+  - applicant    -> ApplicantProfile
+
+
+// ==================== RESUME UPDATED====================
+model Resume {
+  id              String   @id @default(uuid())
+  applicantId     String   @unique
+  applicant       ApplicantProfile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  filename        String
+  filepath        String
+  cgpa            String?  // Newly added column for Extracted CGPA
+  uploadedAt      DateTime @default(now())
+
+  @@map("resumes")
+}
+
+
+--------------------------------------------------------------------------------
+TABLE 4: certificates
+--------------------------------------------------------------------------------
+Columns:
+  - id           : String (UUID, Primary Key)
+  - applicantId  : String (Foreign Key -> applicant_profiles.id)
+  - name         : String (Certificate name, e.g., "Deep Learning Specialization")
+  - companyName  : String (Course provider, e.g., "deeplearning.ai")
+  - platform     : String (Platform, e.g., "Coursera", "Udemy", "edX")
+  - filename     : String (Optional, for file upload)
+  - filepath     : String (Optional, for file upload)
+  - issuer       : String (Optional, legacy field)
+  - processedAt  : DateTime (Optional)
+  - uploadedAt   : DateTime
+
+Relations:
+  - applicant    -> ApplicantProfile
+
+--------------------------------------------------------------------------------
+TABLE 5: derived_skills
+--------------------------------------------------------------------------------
+Columns:
+  - id            : String (UUID, Primary Key)
+  - applicantId   : String (Foreign Key -> applicant_profiles.id)
+  - name          : String
+  - source        : String ("certificate" or "github")
+  - confidence    : Float (0.0 - 1.0, deterministic score)
+  - certificateId : String (Optional)
+  - addedAt       : DateTime
+
+Relations:
+  - applicant     -> ApplicantProfile
+
+--------------------------------------------------------------------------------
+TABLE 6: github_repos
+--------------------------------------------------------------------------------
+Columns:
+  - id           : String (UUID, Primary Key)
+  - applicantId  : String (Foreign Key -> applicant_profiles.id)
+  - repoName     : String
+  - repoUrl      : String
+  - lastUpdated  : DateTime
+  - readme       : String (Text, Optional)
+  - languages    : String[]
+  - fetchedAt    : DateTime
+
+Relations:
+  - applicant    -> ApplicantProfile
+
+--------------------------------------------------------------------------------
+TABLE 7: corporate_jobs
+--------------------------------------------------------------------------------
+Columns:
+  - id             : String (UUID, Primary Key)
+  - hirerId        : String (Foreign Key -> users.id)
+  - title          : String
+  - role           : String
+  - description    : String (Optional)
+  - requiredSkills : Json ([{name: string, weight: number}])
+  - jobType        : Enum (FULL_TIME, PART_TIME, CONTRACT, FREELANCE, INTERNSHIP)
+  - location       : String (Optional)
+  - salary         : String (Optional)
+  - isActive       : Boolean (Default: true)
+  - createdAt      : DateTime
+  - updatedAt      : DateTime
+
+Relations:
+  - hirer          -> User
+
+--------------------------------------------------------------------------------
+TABLE 8: notifications
+--------------------------------------------------------------------------------
+Columns:
+  - id           : String (UUID, Primary Key)
+  - userId       : String (Foreign Key -> users.id)
+  - type         : Enum (JOB_MATCH, SKILL_DERIVED, PROFILE_COMPLETE, GENERAL)
+  - title        : String
+  - message      : String
+  - isRead       : Boolean (Default: false)
+  - metadata     : Json (Optional)
+  - createdAt    : DateTime
+
+Relations:
+  - user         -> User
+
+================================================================================
+                              ENUMS
+================================================================================
+
+UserRole:
+  - APPLICANT
+  - HIRER
+
+Sector:
+  - HEALTHCARE
+  - AGRICULTURE
+  - URBAN
+  - GENERAL
+  - CORPORATE
+
+JobType:
+  - FULL_TIME
+  - PART_TIME
+  - CONTRACT
+  - FREELANCE
+  - INTERNSHIP
+
+NotificationType:
+  - JOB_MATCH
+  - SKILL_DERIVED
+  - PROFILE_COMPLETE
+  - GENERAL
+
+================================================================================
+                         ENTITY RELATIONSHIP DIAGRAM
+================================================================================
+
+  User (1) -----> (0..1) ApplicantProfile
+    |                        |
+    |                        +-----> (0..1) Resume
+    |                        +-----> (0..*) Certificate
+    |                        +-----> (0..*) DerivedSkill
+    |                        +-----> (0..*) GitHubRepo
+    |
+    +-----> (0..*) CorporateJob (as Hirer)
+    +-----> (0..*) Notification
+
+================================================================================
+                              SUMMARY
+================================================================================
+
+Total Tables     : 8
+Total Enums      : 4
+Primary Models   : User, ApplicantProfile, CorporateJob
+Supporting Models: Resume, Certificate, DerivedSkill, GitHubRepo, Notification
+
+File Generated   : 2026-01-17
+Project          : Corporate Sector - Skill Intelligence Platform
+================================================================================

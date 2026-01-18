@@ -1,0 +1,94 @@
+DATABASE SCHEMA REPORT
+======================
+
+TABLE: certificates
+----------------------------------------
+  - id (text, NOT NULL)
+  - applicantId (text, NOT NULL)
+  - name (text, NOT NULL)
+  - companyName (text, NOT NULL)
+  - platform (text, NOT NULL)
+  - filename (text, NULL)
+  - filepath (text, NULL)
+  - issuer (text, NULL)
+  - processedAt (timestamp without time zone, NULL)
+  - uploadedAt (timestamp without time zone, NOT NULL)
+
+TABLE: derived_skills
+----------------------------------------
+  - id (text, NOT NULL)
+  - applicantId (text, NOT NULL)
+  - name (text, NOT NULL)
+  - source (text, NOT NULL)
+  - confidence (double precision, NOT NULL)
+  - certificateId (text, NULL)
+  - addedAt (timestamp without time zone, NOT NULL)
+
+TABLE: corporate_jobs
+----------------------------------------
+  - id (text, NOT NULL)
+  - hirerId (text, NOT NULL)
+  - title (text, NOT NULL)
+  - role (text, NOT NULL)
+  - description (text, NULL)
+  - requiredSkills (jsonb, NOT NULL)
+  - jobType (USER-DEFINED, NOT NULL)
+  - location (text, NULL)
+  - salary (text, NULL)
+  - isActive (boolean, NOT NULL)
+  - createdAt (timestamp without time zone, NOT NULL)
+  - updatedAt (timestamp without time zone, NOT NULL)
+
+TABLE: notifications
+----------------------------------------
+  - id (text, NOT NULL)
+  - type (USER-DEFINED, NOT NULL)
+  - title (text, NOT NULL)
+  - message (text, NOT NULL)
+  - isRead (boolean, NOT NULL)
+  - metadata (jsonb, NULL)
+  - createdAt (timestamp without time zone, NOT NULL)
+  - userId (text, NOT NULL)
+
+TABLE: users
+----------------------------------------
+  - id (text, NOT NULL)
+  - email (text, NOT NULL)
+  - password (text, NOT NULL)
+  - name (text, NOT NULL)
+  - dob (timestamp without time zone, NULL)
+  - role (USER-DEFINED, NOT NULL)
+  - sector (USER-DEFINED, NOT NULL)
+  - createdAt (timestamp without time zone, NOT NULL)
+  - updatedAt (timestamp without time zone, NOT NULL)
+
+TABLE: applicant_profiles
+----------------------------------------
+  - id (text, NOT NULL)
+  - userId (text, NOT NULL)
+  - linkedInUrl (text, NULL)
+  - courseraUrl (text, NULL)
+  - bio (text, NULL)
+  - createdAt (timestamp without time zone, NOT NULL)
+  - updatedAt (timestamp without time zone, NOT NULL)
+
+TABLE: resumes
+----------------------------------------
+  - id (text, NOT NULL)
+  - applicantId (text, NOT NULL)
+  - filename (text, NOT NULL)
+  - filepath (text, NOT NULL)
+  - cgpa (text, NULL)
+  - uploadedAt (timestamp without time zone, NOT NULL)
+
+TABLE: github_repos
+----------------------------------------
+  - id (text, NOT NULL)
+  - applicantId (text, NOT NULL)
+  - repoName (text, NOT NULL)
+  - repoUrl (text, NOT NULL)
+  - lastUpdated (timestamp without time zone, NOT NULL)
+  - readme (text, NULL)
+  - languages (ARRAY, NULL)
+  - fetchedAt (timestamp without time zone, NOT NULL)
+

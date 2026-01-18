@@ -1,0 +1,19 @@
+# Non-project files
+*.pdf
+*.zip
+.DS_Store
+
+# Dependencies
+node_modules/
+dist/
+build/
+.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Uploads
+uploads/

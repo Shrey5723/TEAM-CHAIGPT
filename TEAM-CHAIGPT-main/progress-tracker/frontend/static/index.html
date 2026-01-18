@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechStack Analysis | Premium Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        glass: {
+                            100: 'rgba(255, 255, 255, 0.05)',
+                            200: 'rgba(255, 255, 255, 0.1)',
+                            300: 'rgba(255, 255, 255, 0.2)',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            background-color: #020617;
+            background-image:
+                radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.15) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(139, 92, 246, 0.15) 0px, transparent 50%),
+                linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            color: #e2e8f0;
+        }
+
+        /* Solid Glass Panel */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        }
+
+        .glass-panel-hover:hover {
+            border-color: rgba(6, 182, 212, 0.3);
+            box-shadow: 0 0 15px rgba(6, 182, 212, 0.1);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+
+        /* Neon Accents */
+        .text-glow {
+            text-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+        }
+
+        .border-glow {
+            box-shadow: 0 0 10px rgba(34, 211, 238, 0.1);
+        }
+
+        /* Metric Value Gradient */
+        .gradient-text {
+            background: linear-gradient(to right, #22d3ee, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+    </style>
+</head>
+
+<body class="h-screen overflow-hidden flex flex-col">
+
+    <!-- Navbar -->
+    <nav
+        class="w-full h-16 border-b border-white/5 bg-[#020617]/80 backdrop-blur-md flex items-center justify-between px-8 absolute top-0 z-50">
+        <div class="flex items-center gap-3">
+            <div
+                class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-cyan-500/20">
+                T
+            </div>
+            <span class="font-bold text-lg tracking-tight text-white">TechStack<span
+                    class="text-cyan-400">Analysis</span></span>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="http://localhost:8080/dashboard/applicant"
+                class="flex items-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-sm font-semibold transition-all shadow-lg hover:shadow-cyan-500/25">
+                ← Back to SkillMatch
+            </a>
+            <div id="connectionStatus"
+                class="flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-xs font-medium text-emerald-400">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                System Active
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="flex-1 mt-16 p-8 flex gap-6 overflow-hidden max-w-7xl mx-auto w-full">
+
+        <!-- Left Column: Metrics Grid -->
+        <div class="w-1/3 flex flex-col gap-4">
+
+            <!-- Header Card -->
+            <div class="glass-panel rounded-2xl p-6">
+                <h2 class="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Current Analysis</h2>
+                <div class="text-2xl font-bold text-white mb-2" id="displayTimeframe">Q1 2024</div>
+                <p class="text-xs text-slate-500">Real-time temporal aggregation of your professional developer
+                    footprint.</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 gap-4 flex-1">
+                <!-- CGPA -->
+                <div
+                    class="glass-panel glass-panel-hover rounded-2xl p-5 flex flex-col justify-center relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg class="w-16 h-16 text-cyan-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2L1 21h22L12 2zm0 3.99L19.53 19H4.47L12 5.99zM11 16h2v2h-2zm0-6h2v4h-2z" />
+                        </svg>
+                    </div>
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Academic Standing</div>
+                    <div class="text-4xl font-bold gradient-text" id="displayCgpa">8.5</div>
+                    <div class="mt-2 text-xs text-cyan-500/80 font-medium">+12% vs Average</div>
+                </div>
+
+                <!-- GitHub -->
+                <div
+                    class="glass-panel glass-panel-hover rounded-2xl p-5 flex flex-col justify-center relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg class="w-16 h-16 text-indigo-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.03.66-3.72-1.455-3.72-1.455-.54-1.38-1.335-1.755-1.335-1.755-1.095-.75.075-.735.075-.735 1.205.09 1.845 1.245 1.845 1.245 1.05 1.785 2.76 1.275 3.435.975.105-.75.405-1.275.735-1.575-2.415-.27-4.95-1.215-4.95-5.385 0-1.185.42-2.155 1.11-2.91-.105-.27-.48-1.38.105-2.88 0 0 .915-.285 3 1.11.87-.24 1.8-.36 2.73-.36.93 0 1.86.12 2.73.36 2.085-1.395 3-1.11 3-1.11.585 1.5.21 2.61.105 2.88.69.75 1.11 1.725 1.11 2.91 0 4.185-2.535 5.085-4.965 5.355.42.36.795 1.065.795 2.145 0 1.545-.015 2.805-.015 3.18 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z" />
+                        </svg>
+                    </div>
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Code Velocity</div>
+                    <div class="text-3xl font-bold text-white flex items-center gap-2">
+                        <span id="displayGithub">High</span>
+                        <span
+                            class="text-xs px-2 py-1 rounded-md bg-white/5 border border-white/10 text-slate-300">Active</span>
+                    </div>
+                </div>
+
+                <!-- Certs -->
+                <div
+                    class="glass-panel glass-panel-hover rounded-2xl p-5 flex flex-col justify-center relative overflow-hidden group">
+                    <div class="absolute right-0 top-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <svg class="w-16 h-16 text-amber-400" fill="currentColor" viewBox="0 0 24 24">
+                            <path
+                                d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                        </svg>
+                    </div>
+                    <div class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-2">Qualifications</div>
+                    <div class="text-4xl font-bold text-white" id="displayCerts">3</div>
+                    <div class="mt-2 text-xs text-amber-400/80 font-medium">Verified Credentials</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column: Main Chart -->
+        <div class="w-2/3 glass-panel rounded-2xl p-6 flex flex-col relative overflow-hidden">
+            <!-- Chart Header -->
+            <div class="flex justify-between items-end mb-6 z-10">
+                <div>
+                    <h3 class="text-lg font-bold text-white">Career Growth Trajectory</h3>
+                    <p class="text-sm text-slate-400">Cumulative score based on weighted skill variables</p>
+                </div>
+                <div class="flex gap-2">
+                    <span class="w-3 h-3 rounded-full bg-cyan-500"></span>
+                    <span class="text-xs text-slate-400">Projected</span>
+                </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="flex-1 w-full relative z-10">
+                <canvas id="progressChart"></canvas>
+            </div>
+
+            <!-- Vibrant Background Blob for Depth -->
+            <div
+                class="absolute -bottom-32 -right-32 w-96 h-96 bg-cyan-600/20 blur-[120px] rounded-full pointer-events-none">
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        // --- DATA & LOGIC ---
+
+        const MAIN_APP_URL = 'http://localhost:3000';
+        const SAMPLE_DATA = [
+            { "month": "Jan-2024", "cgpa": 8.5, "github_scores": [45, 55], "certification_scores": [30] },
+            { "month": "Feb-2024", "cgpa": 8.5, "github_scores": [60, 45, 20], "certification_scores": [40, 20] },
+            { "month": "Mar-2024", "cgpa": 8.5, "github_scores": [70], "certification_scores": [50] }
+        ];
+
+        function processRealData(profile) {
+            const monthsMap = new Map();
+            const today = new Date();
+
+            // Initialize last 6 months
+            for (let i = 5; i >= 0; i--) {
+                const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+                const monthKey = d.toLocaleString('default', { month: 'short', year: 'numeric' });
+                monthsMap.set(monthKey, {
+                    month: monthKey,
+                    dateObj: d,
+                    cgpa: 0,
+                    github_score: 0,
+                    cert_score: 0
+                });
+            }
+
+            // 1. CGPA
+            let currentCgpa = 0;
+            if (profile.resume && profile.resume.cgpa) {
+                const match = profile.resume.cgpa.match(/[\d.]+/);
+                if (match) currentCgpa = parseFloat(match[0]);
+            }
+            for (let data of monthsMap.values()) data.cgpa = currentCgpa;
+
+            // 2. GitHub
+            if (profile.githubRepos) {
+                const repos = profile.githubRepos.map(r => ({
+                    date: new Date(r.fetchedAt || r.lastUpdated),
+                    score: 20 + (r.languages.length * 5)
+                })).sort((a, b) => a.date - b.date);
+
+                for (let data of monthsMap.values()) {
+                    const monthEnd = new Date(data.dateObj.getFullYear(), data.dateObj.getMonth() + 1, 0);
+                    const reposUntilNow = repos.filter(r => r.date <= monthEnd);
+                    data.github_score = reposUntilNow.reduce((sum, r) => sum + r.score, 0);
+                }
+            }
+
+            // 3. Certs
+            if (profile.certificates) {
+                const certs = profile.certificates.map(c => ({
+                    date: new Date(c.uploadedAt || c.processedAt),
+                    score: 50
+                })).sort((a, b) => a.date - b.date);
+
+                for (let data of monthsMap.values()) {
+                    const monthEnd = new Date(data.dateObj.getFullYear(), data.dateObj.getMonth() + 1, 0);
+                    const certsUntilNow = certs.filter(c => c.date <= monthEnd);
+                    data.cert_score = certsUntilNow.reduce((sum, c) => sum + c.score, 0);
+                }
+            }
+
+            return Array.from(monthsMap.values()).map(entry => ({
+                month: entry.month,
+                score: (entry.cgpa * 10) + entry.github_score + entry.cert_score,
+                details: entry
+            }));
+        }
+
+        function processSampleData(data) {
+            let cumulativeScore = 0;
+            return data.map(entry => {
+                const score = (entry.cgpa * 10) +
+                    entry.github_scores.reduce((a, b) => a + b, 0) +
+                    entry.certification_scores.reduce((a, b) => a + b, 0);
+                cumulativeScore += score;
+                return { month: entry.month, score: cumulativeScore, details: entry };
+            });
+        }
+
+        async function syncWithMainApp(token) {
+            try {
+                const response = await fetch(`${MAIN_APP_URL}/api/applicant/profile`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!response.ok) throw new Error('Fetch failed');
+                const data = await response.json();
+                if (data.success && data.data) {
+                    updateDashboard(data.data, true);
+                    return;
+                }
+            } catch (error) {
+                console.error('Sync Error:', error);
+            }
+            // Fallback
+            updateDashboard(null, false);
+        }
+
+        function updateDashboard(profile, isReal) {
+            let timeline, latest;
+
+            if (isReal && profile) {
+                timeline = processRealData(profile);
+                latest = timeline[timeline.length - 1];
+
+                // Update specific Stats
+                const cgpaVal = latest.details.cgpa || 0;
+                document.getElementById('displayCgpa').textContent = cgpaVal > 0 ? cgpaVal.toFixed(2) : 'N/A';
+
+                const ghScore = latest.details.github_score;
+                document.getElementById('displayGithub').textContent = ghScore > 100 ? 'Expert' : (ghScore > 50 ? 'Active' : 'Basic');
+
+                const certCount = profile.certificates ? profile.certificates.length : 0;
+                document.getElementById('displayCerts').textContent = certCount;
+
+                document.getElementById('displayTimeframe').textContent = `${timeline[0].month} - ${timeline[timeline.length - 1].month}`;
+            } else {
+                // Sample Logic
+                const processed = processSampleData(SAMPLE_DATA);
+                timeline = processed;
+                document.getElementById('connectionStatus').className = "flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-xs font-medium text-amber-400";
+                document.getElementById('connectionStatus').innerHTML = 'System Demo Mode';
+            }
+
+            renderChart(timeline.map(t => t.month), timeline.map(t => t.score));
+        }
+
+        let chartInstance = null;
+
+        function renderChart(labels, dataPoints) {
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            if (chartInstance) chartInstance.destroy();
+
+            const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(34, 211, 238, 0.5)');
+            gradient.addColorStop(1, 'rgba(34, 211, 238, 0.0)');
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'TechStack Score',
+                        data: dataPoints,
+                        borderColor: '#22d3ee',
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#0f172a',
+                        pointBorderColor: '#22d3ee',
+                        pointBorderWidth: 2,
+                        pointRadius: 6,
+                        pointHoverRadius: 8,
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(2, 6, 23, 0.9)',
+                            titleColor: '#e2e8f0',
+                            bodyColor: '#22d3ee',
+                            padding: 12,
+                            borderColor: 'rgba(255,255,255,0.1)',
+                            borderWidth: 1,
+                            displayColors: false,
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                            ticks: { color: '#94a3b8' }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const token = params.get('token');
+            if (token) {
+                syncWithMainApp(token);
+            } else {
+                updateDashboard(null, false);
+            }
+        });
+    </script>
+</body>
+
+</html>

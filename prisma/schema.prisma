@@ -1,0 +1,181 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== AUTH & USERS ====================
+
+enum UserRole {
+  APPLICANT
+  HIRER
+}
+
+enum Sector {
+  HEALTHCARE
+  AGRICULTURE
+  URBAN
+  GENERAL
+  CORPORATE
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  password      String
+  name          String
+  dob           DateTime?
+  role          UserRole @default(APPLICANT)
+  sector        Sector   @default(GENERAL)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  notifications     Notification[]
+  applicantProfile  ApplicantProfile?
+  hirerJobs         CorporateJob[] @relation("HirerJobs")
+
+  @@map("users")
+}
+
+// ==================== APPLICANT PROFILE ====================
+
+model ApplicantProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  linkedInUrl     String?
+  courseraUrl     String?
+  bio             String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  resume          Resume?
+  certificates    Certificate[]
+  derivedSkills   DerivedSkill[]
+  githubRepos     GitHubRepo[]
+
+  @@map("applicant_profiles")
+}
+
+model Resume {
+  id              String   @id @default(uuid())
+  applicantId     String   @unique
+  applicant       ApplicantProfile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  filename        String
+  filepath        String
+  cgpa            String?
+  uploadedAt      DateTime @default(now())
+
+  @@map("resumes")
+}
+
+model Certificate {
+  id              String   @id @default(uuid())
+  applicantId     String
+  applicant       ApplicantProfile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  
+  // Manual entry fields
+  name            String           // Certificate name (e.g., "Deep Learning Specialization")
+  companyName     String           // Course provider (e.g., "deeplearning.ai")
+  platform        String           // Platform (e.g., "Coursera", "Udemy", "LinkedIn Learning")
+  
+  // Optional file upload (for verification)
+  filename        String?
+  filepath        String?
+  issuer          String?          // Legacy field, can be same as companyName
+  
+  processedAt     DateTime?
+  uploadedAt      DateTime @default(now())
+  
+  derivedSkills   DerivedSkill[]
+
+  @@map("certificates")
+}
+
+model DerivedSkill {
+  id              String   @id @default(uuid())
+  applicantId     String
+  applicant       ApplicantProfile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  name            String
+  source          String      // "certificate", "github"
+  confidence      Float       // Deterministic score from source analysis
+  certificateId   String?
+  certificate     Certificate? @relation(fields: [certificateId], references: [id])
+  addedAt         DateTime @default(now())
+
+  @@map("derived_skills")
+}
+
+model GitHubRepo {
+  id              String   @id @default(uuid())
+  applicantId     String
+  applicant       ApplicantProfile @relation(fields: [applicantId], references: [id], onDelete: Cascade)
+  repoName        String
+  repoUrl         String
+  lastUpdated     DateTime
+  readme          String?     @db.Text
+  languages       String[]
+  fetchedAt       DateTime @default(now())
+
+  @@map("github_repos")
+}
+
+// ==================== CORPORATE JOBS ====================
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  FREELANCE
+  INTERNSHIP
+}
+
+model CorporateJob {
+  id              String   @id @default(uuid())
+  hirerId         String
+  hirer           User     @relation("HirerJobs", fields: [hirerId], references: [id], onDelete: Cascade)
+  title           String
+  role            String
+  description     String?
+  requiredSkills  Json        // [{name: string, weight: number}]
+  jobType         JobType
+  location        String?
+  salary          String?
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("corporate_jobs")
+}
+
+// ==================== NOTIFICATION SERVICE ====================
+
+enum NotificationType {
+  JOB_MATCH
+  SKILL_DERIVED
+  PROFILE_COMPLETE
+  GENERAL
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  metadata  Json?
+  createdAt DateTime         @default(now())
+
+  // Relations
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}

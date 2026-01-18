@@ -1,0 +1,333 @@
+# Corporate Skill Intelligence & Hiring Platform - Backend Documentation
+
+> **Status:** FINAL
+> **Scope:** Corporate Sector ONLY
+> **Target Audience:** Frontend Developers / AI
+
+---
+
+## SECTION 1: SYSTEM OVERVIEW
+
+**What the system does:**
+This is a trust-based skill intelligence platform that bridges the gap between Applicants and Corporate Hirers. It validates skills through "proof of work" (certificates, GitHub activity) rather than self-proclaimed resume keywords.
+
+**High-Level Flow:**
+1. **Applicants** register and build a profile.
+2. **Applicants** upload "proofs":
+   - **Resumes** (parsed for context, not trusted blindly).
+   - **Certificates** (AI-verified and scored).
+   - **GitHub** (Algorithms analyze code activity to verify coding skills).
+3. **Backend** derives "Verified Skills" with confidence scores (0-100%).
+4. **Hirers** post jobs with required skills and weights.
+5. **Backend** automatically matches Applicants to Jobs based on verified skills (not just keywords).
+6. **Notifications** alert both parties of matches.
+
+**Core Design Principles:**
+- **Trust-Based:** Skills are only added if derived from a valid source (Certificate or GitHub).
+- **Deterministic & AI:** We use AI for parsing context but deterministic rules for final scoring to ensure fairness.
+- **Event-Driven:** Actions (like uploading a certificate) trigger background events (Skill Derivation, Job Matching, Notification).
+
+---
+
+## SECTION 2: USER ROLES & PERMISSIONS
+
+There are strictly **TWO** roles.
+
+### 1. APPLICANT
+- **Represents:** A job seeker / student.
+- **Can:**
+  - Create/Update their own profile.
+  - Upload Resumes (PDF).
+  - Upload Certificates (PDF/Image) or add manually.
+  - Connect GitHub account (OAuth).
+  - View their own derived skills.
+  - View "Recommended Jobs" matched to them.
+- **Cannot:**
+  - Create jobs.
+  - View other applicants.
+  - See backend scoring logic directly.
+
+### 2. HIRER
+- **Represents:** A corporate recruiter or company.
+- **Can:**
+  - Post, Update, and Deactivate jobs.
+  - View "Recommended Applicants" for their jobs.
+  - View Applicant details (resume, verified skills).
+- **Cannot:**
+  - Apply for jobs.
+  - Upload certificates/resumes for themselves.
+
+---
+
+## SECTION 3: AUTHENTICATION & SESSION FLOW
+
+**Authentication Strategy:**
+- **JWT (JSON Web Token)** based.
+- Tokens are valid for **7 days**.
+
+**Flow:**
+1. **Register:** `POST /api/auth/register` with `{ email, password, role: "APPLICANT" | "HIRER", ... }`.
+   - Returns: `{ user, token }`.
+2. **Login:** `POST /api/auth/login` with `{ email, password }`.
+   - Returns: `{ user, token }`.
+3. **Frontend Responsibility:**
+   - Store `token` in **localStorage**.
+   - Attach `Authorization: Bearer <token>` header to ALL protected requests.
+   - If API returns `401 Unauthorized`, redirect user to Login.
+
+**Authorization Rules:**
+- Frontend **MUST** check `user.role` before rendering dashboards.
+  - If `role === 'APPLICANT'`, show Applicant Dashboard.
+  - If `role === 'HIRER'`, show Hirer Dashboard.
+- Backend middleware (`applicantOnly`, `hirerOnly`) strictly enforces this.
+
+---
+
+## SECTION 4: DATABASE MODELS
+
+### 1. User
+- **Purpose:** Core identity.
+- **Fields:** `id` (UUID), `email` (Unique), `password` (Hashed), `name`, `role` (Enum), `sector` (Enum), `createdAt`.
+- **Derived:** `role` determines which profile type (Applicant vs Hirer) is relevant.
+
+### 2. ApplicantProfile
+- **Purpose:** Extended profile for job seekers.
+- **Fields:** `userId` (FK), `linkedInUrl`, `courseraUrl`, `bio`.
+- **Relations:** 1-to-1 with `User`. 1-to-Many with `Resume`, `Certificate`, `DerivedSkill`, `GitHubRepo`.
+
+### 3. Resume
+- **Purpose:** Stores the uploaded resume file.
+- **Fields:** `filename`, `filepath`, `uploadedAt`.
+- **Note:** Only **ONE** resume allowed per applicant (uploading new one deletes old one).
+
+### 4. Certificate
+- **Purpose:** Proof of completed coursework.
+- **Fields:** `name`, `companyName` (Provider), `platform` (Coursera, Udemy, etc.), `filename` (Optional), `filepath` (Optional).
+- **User-Input:** `name`, `companyName`, `platform`.
+- **System-Derived:** Skills are derived *from* this model upon creation.
+
+### 5. DerivedSkill
+- **Purpose:** The "Truth" of the system. Validated skills.
+- **Fields:** `name`, `source` ("certificate", "github"), `confidence` (Float 0.0 - 1.0), `certificateId` (FK, Optional).
+- **System-Derived:** Frontend **CANNOT** write to this table directly. It is populated by backend logic only.
+
+### 6. GitHubRepo
+- **Purpose:** Synced repositories from GitHub.
+- **Fields:** `repoName`, `repoUrl`, `lastUpdated`, `languages` (Array), `readme`.
+- **System-Derived:** Fully populated via GitHub API sync.
+
+### 7. CorporateJob
+- **Purpose:** Job posting by Hirer.
+- **Fields:** `title`, `role`, `description`, `requiredSkills` (JSON), `jobType`, `location`, `salary`, `isActive`.
+- **requiredSkills Schema:** `[{ name: "python", weight: 3 }, { name: "react", weight: 5 }]`
+
+### 8. Notification
+- **Purpose:** Alerts for users.
+- **Fields:** `type` (JOB_MATCH, SKILL_DERIVED, etc.), `title`, `message`, `isRead`, `metadata` (JSON).
+
+---
+
+## SECTION 5: APPLICANT FEATURES
+
+### Profile Management
+- **Create:** `POST /api/applicant/profile` (Required after registration).
+- **Update:** `PUT /api/applicant/profile`.
+- **View:** `GET /api/applicant/profile` (Returns strictly owned profile).
+
+### Resume Upload
+- **Endpoint:** `POST /api/applicant/resume`
+- **Constraint:** **PDF ONLY**.
+- **Behavior:** Replaces any existing resume.
+
+### Certificate Management
+- **Method 1 (Upload):** `POST /api/applicant/certificates`. Multipart/form-data. Requires `certificate` (File) and `issuer` (Text).
+- **Method 2 (Manual):** `POST /api/applicant/certificates/manual`. JSON body: `{ name, companyName, platform }`.
+- **Effect:** Both methods trigger **Skill Derivation** immediately.
+
+### GitHub Connection
+- **Flow:** OAuth based.
+- **Start:** `GET /api/github/auth-url` -> Frontend redirects user.
+- **Callback:** GitHub redirects to frontend -> Frontend sends `code` to `POST /api/github/callback`.
+- **Effect:** Backend fetches repos, analyzes languages, and creates `DerivedSkill` entries.
+
+### Skill Visibility
+- **Endpoint:** `GET /api/applicant/skills`.
+- **Display:** Show as a list/grid. Display `confidence` as a progress bar or score (e.g., 0.85 = 85%).
+- **Grouping:** Group by `source` (Certificate vs GitHub) if desired.
+
+---
+
+## SECTION 6: HIRER FEATURES
+
+### Job Management
+- **Create:** `POST /api/corporate/jobs`.
+  - **Required JSON:** `{ title, role, requiredSkills: [{name: "java", weight: 5}], jobType: "FULL_TIME", ... }`
+- **Update:** `PUT /api/corporate/jobs/:jobId`.
+- **View Own:** `GET /api/corporate/my-jobs`.
+
+### Applicant Discovery
+- **Endpoint:** `GET /api/corporate/applicants/recommended/:jobId`.
+- **Logic:** Backend provides a sorted list of applicants who match the job's `requiredSkills`.
+- **Response:** Includes `matchScore` (0-1) and `matchedSkills`.
+
+---
+
+## SECTION 7: API CATALOG
+
+**Base URL:** `http://localhost:3000/api`
+
+### Auth
+- `POST /auth/register` - `{ name, email, password, role }` -> `{ user, token }`
+- `POST /auth/login` - `{ email, password }` -> `{ user, token }`
+
+### Applicant
+- `POST /applicant/profile` - `{ bio, linkedInUrl }` -> Profile object
+- `GET /applicant/profile` - (No body) -> Profile with relations
+- `POST /applicant/resume` - (Multipart: 'resume') -> Resume object
+- `POST /applicant/certificates` - (Multipart: 'certificate', Body: 'issuer') -> Certificate object
+- `POST /applicant/certificates/manual` - `{ name, companyName, platform }` -> Certificate object
+- `GET /applicant/skills` - (No body) -> Array of DerivedSkill
+- `GET /corporate/jobs/recommended/me` - (No body) -> Array of Jobs with `matchScore`
+
+### GitHub
+- `GET /github/auth-url` - Returns `{ data: { authUrl: "..." } }`
+- `POST /github/callback` - `{ code }` -> `{ message, reposCount }`
+- `GET /github/repos` - Returns synced repos list
+
+### Corporate (Hirer)
+- `GET /corporate/jobs` - Public listing. Query: `?jobType=...&location=...`
+- `POST /corporate/jobs` - Create Job. (See Hirer Features)
+- `GET /corporate/my-jobs` - List posted jobs.
+- `GET /corporate/applicants/recommended/:jobId` - List matched applicants.
+
+### Notifications
+- `GET /notifications/:userId` - List notifications.
+- `PUT /notifications/:id/read` - Mark specific as read.
+- `PUT /notifications/read-all` - Mark all as read.
+
+---
+
+## SECTION 8: FILE UPLOAD RULES
+
+**Resume:**
+- **Key:** `resume`
+- **Formats:** `application/pdf` ONLY.
+- **Max Size:** 10 MB.
+- **Error:** If non-PDF, returns 400.
+
+**Certificates:**
+- **Key:** `certificate`
+- **Formats:** PDF, JPEG, PNG, JPG.
+- **Max Size:** 5 MB.
+
+**Implementation Note:** Frontend must use `FormData` object for file uploads.
+
+---
+
+## SECTION 9: GITHUB INTEGRATION DETAILS
+
+**Token Usage:**
+- Backend exchanges OAuth code for an Access Token.
+- Token is used immediately to fetch:
+  1. User Repositories (sorted by updated).
+  2. Repo Languages.
+  3. README files.
+
+**Storage:**
+- Tokens are consumed and used; repos are stored in `GitHubRepo` table.
+- Repo Languages are parsed and stored as `DerivedSkill` with `source="github"`.
+
+**Constraints:**
+- Sync happens manually upon "Connect" or re-sync. It is not a real-time webhook (yet).
+- Frontend should handle `400` errors if code exchange fails.
+
+---
+
+## SECTION 10: SKILL DERIVATION & MATCHING LOGIC
+
+**Derivation:**
+1. **Certificates:**
+   - **AI Analysis:** Backend sends certificate name/provider to Gemini AI. AI extracts skills + confidence.
+   - **Fallback:** If AI fails, keyword matching (e.g., "React Course" -> "react") + Provider Reputation score (e.g., "Coursera" = 0.85).
+2. **GitHub:**
+   - Repo specific language (e.g., "TypeScript") is added as a skill.
+   - **Confidence:** Calculated based on recency.
+     - < 30 days: 90%
+     - < 90 days: 80%
+     - > 1 year: 50%
+
+**Matching Formula (Job <-> Applicant):**
+- **Score:** Weighted average of matched skills.
+- `Match % = (Sum of Weights of Matched Skills) / (Total Weights Required)`
+- **Threshold:** Only matches > 0% are returned. High quality matches are > 70%.
+
+---
+
+## SECTION 11: NOTIFICATION SYSTEM
+
+**Types:**
+- `JOB_MATCH`: When a new job matches an applicant's skills.
+- `SKILL_DERIVED`: Successfully extracted a skill from upload/GitHub.
+- `PROFILE_COMPLETE`: When Resume + Certificate + Skills are present.
+
+**Frontend Implementation:**
+- Poll `GET /api/notifications/:userId` or fetch on dashboard load.
+- Display "Unread" badge if `isRead === false`.
+- Call `PUT .../read` when user clicks a notification.
+
+---
+
+## SECTION 12: EVENT-DRIVEN BEHAVIOR
+
+1. **Event: `skillDerived`**
+   - **Trigger:** Certificate upload OR GitHub sync.
+   - **Effect:** Adds `DerivedSkill` DB entry -> Emits Notification.
+
+2. **Event: `jobMatch`**
+   - **Trigger:** Hirer posts a new job.
+   - **Effect:** Backend scans ALL applicants. If match > 70%, creates Notification for Applicant.
+
+3. **Event: `profileComplete`**
+   - **Trigger:** Any upload action.
+   - **Effect:** Checks if profile has Resume + Certificate + Skill. If yes, Notification.
+
+---
+
+## SECTION 13: FRONTEND INTEGRATION RULES
+
+1. **NEVER** try to POST to `/derived_skills`. Skills are read-only for users.
+2. **ALWAYS** validate file types on frontend before sending to save bandwidth.
+3. **DO NOT** assume a user has a profile immediately after Register. Check `GET /profile`. If 404, redirect to Create Profile.
+4. **Resumes** are single-slot. Uploading a new one overwrites the old one. Warn the user.
+5. **GitHub** redirect flow requires a dedicated route (`/github/callback`) to capture the `?code=` query param.
+
+---
+
+## SECTION 14: SAMPLE USER FLOWS
+
+**Applicant Onboarding:**
+1. Register -> Login.
+2. `GET /applicant/profile` -> 404.
+3. Show "Create Profile" form. `POST /applicant/profile`.
+4. Dashboard unlocks.
+5. User clicks "Upload Resume".
+6. User clicks "Add Certificate" (Manual or Upload).
+7. Notifications appear: "New Skill Derived: React (85%)".
+8. User clicks "Connect GitHub". Redirects... Returns.
+9. Dashboard updates with "Recommended Jobs".
+
+**Hirer Flow:**
+1. Register -> Login (Role: HIRER).
+2. Dashboard shows "My Jobs" (Empty).
+3. Click "Post Job". Fill Title, Description, Skills (e.g., "Node.js": 5, "SQL": 3).
+4. `POST /corporate/jobs`.
+5. Backend runs matching algorithm.
+6. Hirer views "Recommended Applicants" for that job. See matches sorted by score.
+
+---
+
+## SECTION 15: NON-FUNCTIONAL CONSTRAINTS
+
+- **Rate Limiting:** Not strictly enforced yet, but avoid polling loops < 5 seconds.
+- **Data Consistency:** Derived data (skills) may take 1-2 seconds to appear after upload (async events). Frontend should show a "Processing..." state or specific notification to user.
+- **Security:** Do not expose `userId` in URLs if possible, use token-based extraction (backend supports both, prefer token).

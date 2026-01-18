@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skill Twin | Digital Intelligence</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0B1120;
+            /* Deep dark blue */
+            color: white;
+        }
+
+        /* Custom scrollbar for webkit */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        .neon-cyan {
+            color: #22d3ee;
+            text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
+        }
+
+        .input-card {
+            background: #1e293b;
+            border: 1px solid #334155;
+            transition: all 0.3s ease;
+        }
+
+        .input-card:hover {
+            border-color: #22d3ee;
+        }
+
+        .btn-action {
+            background: linear-gradient(90deg, #2563eb, #3b82f6);
+            transition: all 0.3s ease;
+        }
+
+        .btn-action:hover {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+        }
+
+        /* Progress Bar Styling */
+        .progress-container {
+            background: #1e293b;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease-out;
+        }
+
+        /* Chart container glow */
+        .chart-glow {
+            box-shadow: 0 0 100px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Sidebar borders */
+        .border-r-dark {
+            border-right: 1px solid #1e293b;
+        }
+
+        .border-l-dark {
+            border-left: 1px solid #1e293b;
+        }
+    </style>
+</head>
+
+<body class="h-screen overflow-hidden flex">
+
+    <!-- LEFT SIDEBAR: INPUTS -->
+    <div class="w-80 flex-shrink-0 flex flex-col p-8 border-r-dark bg-[#0f172a] overflow-y-auto">
+
+        <!-- Logo -->
+        <div class="mb-12">
+            <h1 class="text-4xl font-bold leading-tight">
+                SKILL<br>
+                <span class="neon-cyan">TWIN™</span>
+            </h1>
+        </div>
+
+        <!-- Input Data Section -->
+        <div class="space-y-8">
+            <h3 class="text-xs font-bold text-slate-500 tracking-widest uppercase">INPUT DATA</h3>
+
+            <!-- Resume Upload Card -->
+            <div class="input-card rounded-xl p-6 relative group cursor-pointer" id="resumeCard">
+                <div class="flex items-start gap-4" id="resumeContent">
+                    <div class="w-10 h-10 rounded bg-slate-700 flex items-center justify-center text-xl">
+                        📄
+                    </div>
+                    <div>
+                        <h4 class="font-semibold text-sm mb-1">Upload Resume</h4>
+                        <p class="text-xs text-slate-400">PDF, DOCX Analysis</p>
+                    </div>
+                </div>
+                <!-- Synced Overlay -->
+                <div id="resumeSyncedOverlay" class="hidden absolute top-0 right-0 p-2">
+                    <span class="text-emerald-400 text-lg">✓</span>
+                </div>
+            </div>
+
+            <!-- GitHub Section -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-500 tracking-widest uppercase mb-4">GITHUB USERNAME</h3>
+                <div class="input-card rounded-xl p-2 flex items-center gap-2 mb-3">
+                    <div class="w-8 h-8 rounded bg-slate-800 flex items-center justify-center text-slate-400 text-sm">
+                        @
+                    </div>
+                    <input type="text" id="githubUsername" placeholder="username"
+                        class="bg-transparent border-none text-sm text-white w-full focus:outline-none placeholder-slate-600">
+                </div>
+                <button id="githubConnectBtn"
+                    class="btn-action w-full py-3 rounded-xl font-semibold text-sm text-white shadow-lg">
+                    Simulate
+                </button>
+                <p id="githubStatusMsg" class="text-xs text-center mt-2 text-emerald-400 hidden">Synced via Main App</p>
+            </div>
+
+        </div>
+
+        <div class="mt-auto pt-8 space-y-4">
+            <a href="http://localhost:8080/dashboard/applicant" 
+               class="block w-full py-3 px-4 rounded-xl font-semibold text-sm text-white bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-center transition-all shadow-lg hover:shadow-cyan-500/25">
+                ← Back to SkillMatch
+            </a>
+            <div id="syncBanner"
+                class="p-3 rounded-lg bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs hidden">
+                ⚠ Manual Mode
+            </div>
+        </div>
+    </div>
+
+
+    <!-- CENTER: RADAR CHART -->
+    <div class="flex-1 flex flex-col p-8 relative">
+
+        <!-- Header Info -->
+        <div class="flex justify-between items-start mb-8 bg-[#1e293b] p-6 rounded-2xl border border-slate-800">
+            <div>
+                <h2 class="text-2xl font-bold mb-1" id="twinName">Guest User</h2>
+                <p class="text-xs text-slate-500">ID: 882-ALPHA-GEN</p>
+            </div>
+            <div class="flex gap-8 text-right">
+                <div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">LEVEL</div>
+                    <div class="text-3xl font-bold text-cyan-400" id="totalSkills">0</div>
+                </div>
+                <div>
+                    <div class="text-xs text-slate-500 uppercase tracking-wide mb-1">VELOCITY</div>
+                    <div class="text-3xl font-bold text-white" id="velocity">0.00</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Area -->
+        <div
+            class="flex-1 flex items-center justify-center relative chart-glow rounded-3xl bg-[#0f172a]/50 border border-slate-800/50 p-8">
+            <div class="w-full h-full max-w-2xl max-h-[600px]">
+                <canvas id="skillRadar"></canvas>
+            </div>
+        </div>
+
+    </div>
+
+
+    <!-- RIGHT SIDEBAR: METRICS -->
+    <div class="w-80 flex-shrink-0 flex flex-col p-8 border-l-dark bg-[#0f172a] overflow-y-auto">
+
+        <div class="space-y-10">
+            <!-- Reality Check -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-500 tracking-widest uppercase mb-6">REALITY CHECK</h3>
+
+                <!-- Code Consistency -->
+                <div class="mb-6">
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium">Code Consistency</span>
+                        <span class="text-sm font-bold text-emerald-400" id="consistencyDisplay">0%</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar bg-emerald-400" id="consistencyBar" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Project Complexity -->
+                <div>
+                    <div class="flex justify-between mb-2">
+                        <span class="text-sm font-medium">Project Complexity</span>
+                        <span class="text-sm font-bold text-amber-400" id="complexityDisplay">Low</span>
+                    </div>
+                    <div class="progress-container">
+                        <div class="progress-bar bg-amber-400" id="complexityBar" style="width: 20%"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Career Prediction -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-500 tracking-widest uppercase mb-6">CAREER PREDICTION</h3>
+
+                <div class="p-4 border-l-2 border-cyan-400 bg-cyan-900/10">
+                    <p class="text-sm text-slate-300 italic mb-4">
+                        "Run simulation to see future projection..."
+                    </p>
+                    <button class="text-xs text-cyan-400 hover:text-white transition-colors" onclick="runSimulation()">
+                        RUN SIMULATION >
+                    </button>
+                    <div id="growthStats" class="mt-4 space-y-2 hidden">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skills List (Mini) -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-500 tracking-widest uppercase mb-4">DETECTED SKILLS</h3>
+                <div id="skillsList" class="space-y-2 text-sm text-slate-400 max-h-40 overflow-y-auto pr-2">
+                    <p class="text-xs italic text-slate-600">No skills yet...</p>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+    <script>
+        // --- LOGIC & CHART CONFIGURATION ---
+
+        let radarChart;
+        let currentState = null;
+        let futureState = null;
+
+        function initChart() {
+            const ctx = document.getElementById('skillRadar').getContext('2d');
+            Chart.defaults.color = '#64748b';
+            Chart.defaults.font.family = 'Inter';
+
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['S1', 'S2', 'S3', 'S4', 'S5'],
+                    datasets: [{
+                        label: 'Current',
+                        data: [2, 2, 2, 2, 2],
+                        backgroundColor: 'rgba(34, 211, 238, 0.2)', // Cyan transparent
+                        borderColor: '#22d3ee', // Cyan
+                        borderWidth: 3,
+                        pointBackgroundColor: '#0f172a',
+                        pointBorderColor: '#22d3ee',
+                        pointHoverBackgroundColor: '#22d3ee',
+                        pointHoverBorderColor: '#fff',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 10,
+                            ticks: { display: false, maxTicksLimit: 5 }, // Hide concentric ticks numbers
+                            grid: { color: '#334155' }, // Darker grid lines
+                            angleLines: { color: '#334155' },
+                            pointLabels: {
+                                color: '#94a3b8',
+                                font: { size: 12, weight: '600' }
+                            }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
+
+        function updateChart(skills, futureSkills = null) {
+            // Sort by score descending to show top skills
+            let sortedKeys = Object.keys(skills).sort((a, b) => (skills[b]?.score || 0) - (skills[a]?.score || 0));
+            // Take top 5 for the Pentagon, or up to 12
+            let labels = sortedKeys.slice(0, 12);
+            let data = labels.map(l => skills[l]?.score || 0);
+
+            // Shape placeholders - Enforce Pentagon
+            const placeholders = ['Adaptability', 'Growth', 'Vision', 'Logic', 'Strategy'];
+            while (labels.length < 5) {
+                const next = placeholders.find(p => !labels.includes(p)) || `Skill ${labels.length + 1}`;
+                labels.push(next);
+                data.push(2); // Base score for aesthetics
+            }
+
+            radarChart.data.labels = labels;
+            radarChart.data.datasets[0].data = data;
+
+            // Future Overlay
+            if (futureSkills) {
+                const futureData = labels.map(l =>
+                    futureSkills[l]?.future_score ||
+                    futureSkills[l]?.score ||
+                    (skills[l]?.score || 3) // Fallback
+                );
+
+                if (radarChart.data.datasets.length < 2) {
+                    radarChart.data.datasets.push({
+                        label: 'Predicted',
+                        data: futureData,
+                        borderColor: '#f59e0b', // Amber
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        pointRadius: 0
+                    });
+                } else {
+                    radarChart.data.datasets[1].data = futureData;
+                }
+            }
+
+            radarChart.update();
+        }
+
+
+        // --- UI UPDATERS ---
+
+        function updateUI(state) {
+            // Header
+            document.getElementById('twinName').textContent = state.name || 'Guest User';
+            document.getElementById('totalSkills').textContent = state.attributes?.total_skills || 0;
+            document.getElementById('velocity').textContent = (state.attributes?.velocity || 0).toFixed(2);
+
+            // Reality Check
+            const consistency = Math.round((state.attributes?.consistency || 0) * 100);
+            document.getElementById('consistencyDisplay').textContent = consistency + '%';
+            document.getElementById('consistencyBar').style.width = consistency + '%';
+
+            // Complexity (Derived from skill count/level for demo)
+            const complexityScore = Math.min((state.attributes?.total_skills * 10 || 20), 100);
+            document.getElementById('complexityBar').style.width = complexityScore + '%';
+            document.getElementById('complexityDisplay').textContent = complexityScore > 60 ? 'High' : (complexityScore > 30 ? 'Medium' : 'Low');
+
+            // Skills List
+            const skillsList = document.getElementById('skillsList');
+            const sortedSkills = Object.entries(state.skills || {}).sort((a, b) => b[1].score - a[1].score);
+            if (sortedSkills.length > 0) {
+                skillsList.innerHTML = sortedSkills.map(([name, s]) => `
+                    <div class="flex justify-between items-center">
+                        <span class="capitalize text-slate-300">${name}</span>
+                        <span class="text-cyan-400 font-bold">${s.score.toFixed(1)}</span>
+                    </div>
+                `).join('');
+            } else {
+                skillsList.innerHTML = '<p class="text-xs italic text-slate-600">No skills yet...</p>';
+            }
+        }
+
+
+        // --- DATA SYNC & FLOW ---
+
+        function getTokenFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('token');
+        }
+
+        async function syncFromMainApp(token) {
+            try {
+                const res = await fetch('/api/sync_from_main_app', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    currentState = data.twin_state;
+                    updateChart(currentState.skills);
+                    updateUI(currentState);
+
+                    // Show Synced UI State in Inputs
+                    document.getElementById('syncBanner').classList.add('hidden');
+
+                    // GitHub Input State
+                    if (data.synced.github_repos > 0) {
+                        const githubInput = document.getElementById('githubUsername');
+                        githubInput.value = 'Connected via OAuth';
+                        githubInput.disabled = true;
+                        document.getElementById('githubConnectBtn').textContent = 'Live Synced';
+                        document.getElementById('githubConnectBtn').className = 'btn-action w-full py-3 rounded-xl font-semibold text-sm text-emerald-100 bg-emerald-600 cursor-default';
+                        document.getElementById('githubStatusMsg').classList.remove('hidden');
+                    }
+
+                    // Resume Input State
+                    if (currentState.resume_uploaded) {
+                        document.getElementById('resumeContent').innerHTML = `
+                            <div class="w-10 h-10 rounded bg-emerald-500/20 flex items-center justify-center text-xl text-emerald-400">✓</div>
+                            <div>
+                                <h4 class="font-semibold text-sm mb-1 text-emerald-400">Resume Synced</h4>
+                                <p class="text-xs text-emerald-500/60">Analysis Complete</p>
+                            </div>
+                        `;
+                        document.getElementById('resumeCard').classList.add('border-emerald-500');
+                    }
+
+                    return true;
+                }
+            } catch (e) { console.error(e); }
+            return false;
+        }
+
+        async function fetchState() {
+            try {
+                const res = await fetch('/api/state');
+                const data = await res.json();
+                currentState = data;
+                updateChart(data.skills);
+                updateUI(data);
+            } catch (e) { console.error(e); }
+        }
+
+        async function runSimulation() {
+            try {
+                const res = await fetch('/api/simulate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ months: 12 })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    futureState = data.simulation.future_state;
+                    updateChart(currentState.skills, futureState);
+
+                    // Update stats text
+                    const growthDiv = document.getElementById('growthStats');
+                    growthDiv.innerHTML = `
+                        <div class="text-xs text-amber-500 font-bold mb-1">PROJECTION COMPLETE</div>
+                        <div class="text-xs text-slate-400">Confidence: ${(data.simulation.prediction_confidence * 100).toFixed(0)}%</div>
+                    `;
+                    growthDiv.classList.remove('hidden');
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // --- INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            initChart();
+            const token = getTokenFromUrl();
+            if (token) {
+                const success = await syncFromMainApp(token);
+                if (!success) {
+                    document.getElementById('syncBanner').classList.remove('hidden');
+                    fetchState();
+                }
+            } else {
+                document.getElementById('syncBanner').classList.remove('hidden');
+                fetchState();
+            }
+        });
+
+    </script>
+</body>
+
+</html>
